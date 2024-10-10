@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Videollamada con Encuestas</title>
+    <title>Videollamadas Admin y Usuario</title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -13,51 +13,28 @@
             justify-content: center;
             height: 100vh;
             margin: 0;
+            background-color: #f0f0f0;
         }
 
-        #login-form, #admin-panel, #user-panel {
+        #login-form, #video-container {
             display: none;
         }
 
-        #login-form.active, #admin-panel.active, #user-panel.active {
+        #login-form.active, #video-container.active {
             display: block;
         }
 
+        #video-container {
+            display: flex;
+            flex-direction: row;
+            gap: 10px;
+        }
+
         video {
-            width: 600px;
-            height: 400px;
+            width: 400px;
+            height: 300px;
             border: 1px solid #ccc;
             background: black;
-        }
-
-        .question-section {
-            margin-top: 20px;
-        }
-
-        .question {
-            margin-bottom: 20px;
-        }
-
-        .progress-bar {
-            width: 600px;
-            height: 20px;
-            background-color: #ddd;
-            margin-top: 5px;
-            position: relative;
-        }
-
-        .progress-bar div {
-            height: 100%;
-            position: absolute;
-        }
-
-        .yes-bar {
-            background-color: green;
-        }
-
-        .no-bar {
-            background-color: red;
-            right: 0;
         }
 
         button {
@@ -66,159 +43,82 @@
             font-size: 16px;
         }
 
+        h2 {
+            color: #333;
+        }
     </style>
 </head>
 <body>
 
-    <!-- Formulario de Inicio de Sesión -->
     <div id="login-form" class="active">
-        <h2>Iniciar Sesión</h2>
+        <h2>Iniciar sesión</h2>
         <form id="form">
-            <label for="password">Contraseña:</label>
-            <input type="password" id="password" required><br><br>
+            <label for="role">Seleccione su rol:</label><br>
+            <input type="radio" name="role" value="admin" required> Administrador <br>
+            <input type="radio" name="role" value="user" required> Usuario <br><br>
+
+            <label for="code">Contraseña:</label>
+            <input type="password" id="code" required><br><br>
             <button type="submit">Iniciar Sesión</button>
         </form>
     </div>
 
-    <!-- Panel del Administrador -->
-    <div id="admin-panel">
-        <h2>Panel de Administrador</h2>
-        <video id="admin-video" autoplay playsinline></video><br>
-        <div class="question-section">
-            <h3>Escribir Pregunta</h3>
-            <input type="text" id="new-question" placeholder="Escribe una pregunta">
-            <button id="add-question">Agregar Pregunta</button>
+    <div id="video-container">
+        <h2>Videollamada</h2>
+        <div id="admin-video-container">
+            <h3>Administrador</h3>
+            <video id="admin-video" autoplay playsinline></video>
         </div>
-        <div id="questions-container"></div>
-    </div>
 
-    <!-- Panel del Usuario -->
-    <div id="user-panel">
-        <h2>Panel de Usuario</h2>
-        <video id="user-video" autoplay playsinline muted></video>
-        <div id="user-questions-container"></div>
+        <div id="user-video-container">
+            <h3>Usuario</h3>
+            <video id="user-video" autoplay playsinline></video>
+        </div>
     </div>
 
     <script>
-        const adminPassword = "1234";
-        const userPassword = "0987";
+        // Variables de contraseñas
+        const adminCode = "1234";
+        const userCode = "0987";
 
-        const form = document.getElementById('form');
-        const passwordInput = document.getElementById('password');
-        const loginForm = document.getElementById('login-form');
-        const adminPanel = document.getElementById('admin-panel');
-        const userPanel = document.getElementById('user-panel');
-        const adminVideo = document.getElementById('admin-video');
-        const userVideo = document.getElementById('user-video');
-        const newQuestionInput = document.getElementById('new-question');
-        const addQuestionBtn = document.getElementById('add-question');
-        const questionsContainer = document.getElementById('questions-container');
-        const userQuestionsContainer = document.getElementById('user-questions-container');
+        // Obtener referencias a los elementos del DOM
+        const form = document.getElementById("form");
+        const codeInput = document.getElementById("code");
+        const videoContainer = document.getElementById("video-container");
+        const loginForm = document.getElementById("login-form");
+        const adminVideo = document.getElementById("admin-video");
+        const userVideo = document.getElementById("user-video");
+        let role = "";
 
-        let stream = null;
-        let questions = [];
+        // Evento de inicio de sesión
+        form.addEventListener("submit", function (e) {
+            e.preventDefault();
+            const code = codeInput.value;
+            role = document.querySelector('input[name="role"]:checked').value;
 
-        // Función para acceder a la cámara y micrófono
-        function startVideo(videoElement) {
+            // Verificar contraseña del administrador o del usuario
+            if ((role === "admin" && code === adminCode) || (role === "user" && code === userCode)) {
+                loginForm.classList.remove("active");
+                videoContainer.classList.add("active");
+                startVideo(role);
+            } else {
+                alert("Contraseña incorrecta.");
+            }
+        });
+
+        // Función para iniciar el acceso a la cámara
+        function startVideo(role) {
             navigator.mediaDevices.getUserMedia({ video: true, audio: true })
-                .then(function (mediaStream) {
-                    stream = mediaStream;
-                    videoElement.srcObject = mediaStream;
+                .then(function (stream) {
+                    if (role === "admin") {
+                        adminVideo.srcObject = stream;
+                    } else if (role === "user") {
+                        userVideo.srcObject = stream;
+                    }
                 })
                 .catch(function (err) {
                     console.error("Error al acceder a la cámara o micrófono: ", err);
                 });
-        }
-
-        // Evento de inicio de sesión
-        form.addEventListener('submit', function(e) {
-            e.preventDefault();
-            const password = passwordInput.value;
-
-            if (password === adminPassword) {
-                loginForm.classList.remove('active');
-                adminPanel.classList.add('active');
-                startVideo(adminVideo);
-            } else if (password === userPassword) {
-                loginForm.classList.remove('active');
-                userPanel.classList.add('active');
-                startVideo(userVideo);
-                userVideo.srcObject = stream; // El usuario ve lo que muestra el administrador
-            } else {
-                alert('Contraseña incorrecta.');
-            }
-        });
-
-        // Función para agregar preguntas
-        addQuestionBtn.addEventListener('click', function() {
-            const questionText = newQuestionInput.value;
-            if (questionText) {
-                const questionId = questions.length;
-                questions.push({ yesVotes: 0, noVotes: 0 });
-                addQuestionToAdminPanel(questionId, questionText);
-                addQuestionToUserPanel(questionId, questionText);
-                newQuestionInput.value = '';
-            }
-        });
-
-        // Función para agregar una pregunta al panel del administrador
-        function addQuestionToAdminPanel(id, text) {
-            const questionDiv = document.createElement('div');
-            questionDiv.classList.add('question');
-            questionDiv.innerHTML = `
-                <h4>${text}</h4>
-                <div class="progress-bar">
-                    <div class="yes-bar" style="width: 0%;"></div>
-                    <div class="no-bar" style="width: 0%;"></div>
-                </div>
-            `;
-            questionsContainer.appendChild(questionDiv);
-        }
-
-        // Función para agregar una pregunta al panel del usuario
-        function addQuestionToUserPanel(id, text) {
-            const questionDiv = document.createElement('div');
-            questionDiv.classList.add('question');
-            questionDiv.innerHTML = `
-                <h4>${text}</h4>
-                <button onclick="vote(${id}, 'yes', this)">Sí</button>
-                <button onclick="vote(${id}, 'no', this)">No</button>
-            `;
-            userQuestionsContainer.appendChild(questionDiv);
-        }
-
-        // Función para manejar los votos de los usuarios
-        function vote(id, option, button) {
-            const question = questions[id];
-
-            if (option === 'yes') {
-                question.yesVotes++;
-            } else if (option === 'no') {
-                question.noVotes++;
-            }
-
-            updateProgressBar(id);
-            disableVoting(button);
-        }
-
-        // Función para actualizar la barra de progreso
-        function updateProgressBar(id) {
-            const totalVotes = questions[id].yesVotes + questions[id].noVotes;
-            const yesPercentage = (questions[id].yesVotes / totalVotes) * 100;
-            const noPercentage = (questions[id].noVotes / totalVotes) * 100;
-
-            const questionDiv = questionsContainer.children[id];
-            const yesBar = questionDiv.querySelector('.yes-bar');
-            const noBar = questionDiv.querySelector('.no-bar');
-
-            yesBar.style.width = `${Math.min(yesPercentage * 6, 600)}px`; // 600 es el ancho máximo
-            noBar.style.width = `${Math.min(noPercentage * 6, 600)}px`;
-        }
-
-        // Función para deshabilitar los botones de voto
-        function disableVoting(button) {
-            const buttons = button.parentNode.querySelectorAll('button');
-            buttons.forEach(btn => btn.disabled = true);
         }
     </script>
 
