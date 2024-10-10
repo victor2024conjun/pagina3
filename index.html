@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Videollamadas con WebRTC - Administrador y Usuario</title>
+    <style>
+        .progress-bar {
+            width: 100%;
+            background-color: #f3f3f3;
+        }
+        .progress {
+            height: 24px;
+            background-color: #4caf50;
+            text-align: center;
+            color: white;
+        }
+    </style>
+</head>
+<body>
+    <h1>Videollamadas con WebRTC</h1>
+    <form id="loginForm">
+        <label for="role">Rol:</label>
+        <select id="role" required>
+            <option value="admin">Administrador</option>
+            <option value="viewer">Usuario</option>
+        </select><br><br>
+        <label for="password">Contraseña:</label>
+        <input type="password" id="password" required><br><br>
+        <button type="submit">Ingresar</button>
+    </form>
+    <div id="adminContainer" style="display:none;">
+        <video id="localVideo" autoplay playsinline></video>
+        <div>
+            <h2>Escribir Pregunta</h2>
+            <input type="text" id="question" placeholder="Escribe tu pregunta aquí"><br><br>
+            <button onclick="addQuestion()">Agregar Pregunta</button>
+        </div>
+        <div id="questionsContainer"></div>
+    </div>
+    <div id="viewerContainer" style="display:none;">
+        <video id="remoteVideo" autoplay playsinline></video>
+        <div id="viewerQuestionsContainer"></div>
+    </div>
+
+    <script>
+        let localStream;
+        let questions = [];
+
+        document.getElementById('loginForm').addEventListener('submit', function(event) {
+            event.preventDefault();
+            const role = document.getElementById('role').value;
+            const password = document.getElementById('password').value;
+
+            if (role === 'admin' && password === '1234') {
+                document.getElementById('loginForm').style.display = 'none';
+                document.getElementById('adminContainer').style.display = 'block';
+                startAdminStream();
+            } else if (role === 'viewer' && password === '0987') {
+                document.getElementById('loginForm').style.display = 'none';
+                document.getElementById('viewerContainer').style.display = 'block';
+                startViewerStream();
+            } else {
+                alert('Contraseña incorrecta');
+            }
+        });
+
+        function startAdminStream() {
+            navigator.mediaDevices.getUserMedia({ video: true, audio: true })
+                .then(stream => {
+                    localStream = stream;
+                    const video = document.getElementById('localVideo');
+                    video.srcObject = stream;
+                    // Aquí podrías agregar la lógica para enviar el stream al servidor
+                })
+                .catch(error => {
+                    console.error('Error al acceder a la cámara y micrófono:', error);
+                });
+        }
+
+        function startViewerStream() {
+            // Aquí podrías agregar la lógica para recibir el stream del servidor
+            const video = document.getElementById('remoteVideo');
+            // Simulación de recibir el stream del administrador
+            video.srcObject = localStream;
+        }
+
+        function addQuestion() {
+            const questionText = document.getElementById('question').value;
+            if (questionText) {
+                const question = {
+                    text: questionText,
+                    yesVotes: 0,
+                    noVotes: 0
+                };
+                questions.push(question);
+                renderQuestions();
+                document.getElementById('question').value = '';
+            }
+        }
+
+        function renderQuestions() {
+            const adminContainer = document.getElementById('questionsContainer');
+            const viewerContainer = document.getElementById('viewerQuestionsContainer');
+            adminContainer.innerHTML = '';
+            viewerContainer.innerHTML = '';
+
+            questions.forEach((question, index) => {
+                const questionElement = document.createElement('div');
+                questionElement.innerHTML = `
+                    <p>${question.text}</p>
+                    <button onclick="vote(${index}, 'yes')">Sí</button>
+                    <button onclick="vote(${index}, 'no')">No</button>
+                    <div class="progress-bar">
+                        <div class="progress" id="yesProgress${index}" style="width: ${question.yesVotes / 6}%">Sí: ${question.yesVotes}</div>
+                    </div>
+                    <div class="progress-bar">
+                        <div class="progress" id="noProgress${index}" style="width: ${question.noVotes / 6}%">No: ${question.noVotes}</div>
+                    </div>
+                `;
+                adminContainer.appendChild(questionElement);
+                viewerContainer.appendChild(questionElement.cloneNode(true));
+            });
+        }
+
+        function vote(index, type) {
+            if (type === 'yes') {
+                questions[index].yesVotes++;
+            } else {
+                questions[index].noVotes++;
+            }
+            renderQuestions();
+        }
+    </script>
+</body>
+</html>
