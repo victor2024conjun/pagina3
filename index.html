@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Videollamadas Admin y Usuario</title>
+    <title>Videollamada Administrador/Usuario</title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -13,26 +13,25 @@
             justify-content: center;
             height: 100vh;
             margin: 0;
-            background-color: #f0f0f0;
         }
 
-        #login-form, #video-container {
+        #login-form, #video-section {
             display: none;
         }
 
-        #login-form.active, #video-container.active {
+        #login-form.active, #video-section.active {
             display: block;
         }
 
-        #video-container {
+        #videos-container {
             display: flex;
-            flex-direction: row;
-            gap: 10px;
+            justify-content: space-around;
+            width: 100%;
         }
 
         video {
-            width: 400px;
-            height: 300px;
+            width: 45%;
+            height: auto;
             border: 1px solid #ccc;
             background: black;
         }
@@ -42,10 +41,6 @@
             padding: 10px 20px;
             font-size: 16px;
         }
-
-        h2 {
-            color: #333;
-        }
     </style>
 </head>
 <body>
@@ -53,73 +48,98 @@
     <div id="login-form" class="active">
         <h2>Iniciar sesión</h2>
         <form id="form">
-            <label for="role">Seleccione su rol:</label><br>
-            <input type="radio" name="role" value="admin" required> Administrador <br>
-            <input type="radio" name="role" value="user" required> Usuario <br><br>
-
+            <label for="role">Tipo de usuario:</label>
+            <select id="role">
+                <option value="admin">Administrador</option>
+                <option value="user">Usuario</option>
+            </select><br><br>
             <label for="code">Contraseña:</label>
             <input type="password" id="code" required><br><br>
             <button type="submit">Iniciar Sesión</button>
         </form>
     </div>
 
-    <div id="video-container">
+    <div id="video-section">
         <h2>Videollamada</h2>
-        <div id="admin-video-container">
-            <h3>Administrador</h3>
+        <div id="videos-container">
             <video id="admin-video" autoplay playsinline></video>
-        </div>
-
-        <div id="user-video-container">
-            <h3>Usuario</h3>
             <video id="user-video" autoplay playsinline></video>
         </div>
     </div>
 
     <script>
-        // Variables de contraseñas
         const adminCode = "1234";
         const userCode = "0987";
 
-        // Obtener referencias a los elementos del DOM
         const form = document.getElementById("form");
         const codeInput = document.getElementById("code");
-        const videoContainer = document.getElementById("video-container");
+        const roleSelect = document.getElementById("role");
+        const videoSection = document.getElementById("video-section");
         const loginForm = document.getElementById("login-form");
         const adminVideo = document.getElementById("admin-video");
         const userVideo = document.getElementById("user-video");
-        let role = "";
 
-        // Evento de inicio de sesión
+        let isAdmin = false;
+        let adminStream = null;
+        let userStream = null;
+
+        // Función para iniciar sesión
         form.addEventListener("submit", function (e) {
             e.preventDefault();
+            const role = roleSelect.value;
             const code = codeInput.value;
-            role = document.querySelector('input[name="role"]:checked').value;
 
-            // Verificar contraseña del administrador o del usuario
-            if ((role === "admin" && code === adminCode) || (role === "user" && code === userCode)) {
+            if (role === "admin" && code === adminCode) {
+                isAdmin = true;
                 loginForm.classList.remove("active");
-                videoContainer.classList.add("active");
-                startVideo(role);
+                videoSection.classList.add("active");
+                startVideo(true); // Iniciar video para administrador (con micrófono)
+            } else if (role === "user" && code === userCode) {
+                isAdmin = false;
+                loginForm.classList.remove("active");
+                videoSection.classList.add("active");
+                startVideo(false); // Iniciar video para usuario (sin micrófono)
             } else {
                 alert("Contraseña incorrecta.");
             }
         });
 
-        // Función para iniciar el acceso a la cámara
-        function startVideo(role) {
-            navigator.mediaDevices.getUserMedia({ video: true, audio: true })
+        // Función para iniciar el acceso a la cámara (con o sin micrófono)
+        function startVideo(isAdmin) {
+            const constraints = isAdmin ? { video: true, audio: true } : { video: true, audio: false };
+            
+            navigator.mediaDevices.getUserMedia(constraints)
                 .then(function (stream) {
-                    if (role === "admin") {
+                    if (isAdmin) {
+                        adminStream = stream;
                         adminVideo.srcObject = stream;
-                    } else if (role === "user") {
+                    } else {
+                        userStream = stream;
                         userVideo.srcObject = stream;
+                    }
+                    if (adminStream && userStream) {
+                        displayBothVideos();
                     }
                 })
                 .catch(function (err) {
                     console.error("Error al acceder a la cámara o micrófono: ", err);
                 });
         }
+
+        // Mostrar ambos videos (una vez ambas conexiones estén listas)
+        function displayBothVideos() {
+            if (isAdmin) {
+                adminVideo.srcObject = adminStream;
+                userVideo.srcObject = userStream;
+            } else {
+                adminVideo.srcObject = adminStream;
+                userVideo.srcObject = userStream;
+            }
+        }
+
+        // Para simular la conexión de ambos roles en la misma página,
+        // puedes usar esta función para iniciar ambos videos de forma local en la demo.
+        // En un entorno real, necesitarías WebRTC para la transmisión de video entre usuarios.
     </script>
 
 </body>
